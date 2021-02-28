@@ -1,0 +1,8 @@
+streamlit >= 0.76.0
+ipython
+pandas
+numpy
+matplotlib == 3.2
+seaborn
+altair
+requests

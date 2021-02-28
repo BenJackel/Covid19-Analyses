@@ -60,10 +60,7 @@ class Data():
 @st.cache(allow_output_mutation=True)
 def get_case_data(as_of_date):
     data_url = 'https://health-infobase.canada.ca/src/data/covidLive/covid19-download.csv'
-    resp = requests.get(data_url)
-    if resp.content:
-        df = pd.read_csv(io.BytesIO(resp.content), parse_dates=['date'])
-
+    df = pd.read_csv(data_url, parse_dates=['date'])
     col_names = {
         'prname': 'Province',
         'date': 'Date',
@@ -75,7 +72,6 @@ def get_case_data(as_of_date):
         'numrecoveredtoday': 'New Recovered',
         'numactive': 'Active Cases'
     }
-
 
     df.rename(columns=col_names, inplace=True)
     df = df[col_names.values()]
@@ -98,7 +94,7 @@ def get_vaccine_history(as_of_date):
     }, inplace=True)
     df['Date'] = pd.to_datetime(df['Date'])
     # Normalize province names
-    prov_names = config.province_names
+    prov_names = {abbr: name for abbr, name in config.province_data[['abbr', 'name']].values}
     df['Province'] = df['Province'].apply(lambda x: prov_names.get(x, x))
     return df
 
@@ -149,7 +145,7 @@ def plot_immunity(data):
 
 
 def app():
-    prov_options = list(config.province_names.values())
+    prov_options = list(config.province_data['name'].values)
     default_index = prov_options.index('Saskatchewan')
     province_selection = st.sidebar.selectbox(
         "Select Province", 
