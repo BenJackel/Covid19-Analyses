@@ -1,102 +1,11 @@
 import requests
 import config
-import io
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
-import matplotlib.colors as mcolors
 import datetime
-import seaborn as sns
 import streamlit as st
-
-
-colors = list(mcolors.XKCD_COLORS.values())
-
-class Data():
-    def __init__(self, province):
-        self.as_of_date = datetime.datetime.today().date()
-        self.province = config.Province(province)
-        self.data = get_case_data(self.as_of_date).query(f'Province=="{self.province.name}"')  
-        self.__add_vaccinated()
-        self.__add_immunity()
-        self.__calculate_R()
-
-    def __add_vaccinated(self):
-        df = self.data.copy()
-        vaccine_data = get_vaccine_history(self.as_of_date)
-        df = df.merge(vaccine_data, on=['Date', 'Province'], how='left')
-        df['Total Vaccinated'] = df['Total Vaccinated'].fillna(0).astype(int)
-        df['New Vaccinated'] = df['New Vaccinated'].fillna(0).astype(int)
-        self.data = df
-        return self
-
-    def __add_immunity(self):
-        df = self.data.copy()
-        df['Immunity (Lower Bound)'] = (df['Total Cases'] + df['Total Vaccinated']) / self.province.population
-        df['Immunity (Upper Bound)'] = (df['Total Cases']*5 + df['Total Vaccinated']) / self.province.population
-        self.data = df
-        return self
-
-    def __calculate_R(self):
-        df = self.data.sort_values(['Date']).copy()
-        df['S'] = self.province.population - df['Total Cases']
-        df['I'] = df['Active Cases']
-        df['R'] = df['Total Recovered'] + df['Total Deaths']
-
-        df[['S', 'I', 'R']] = df[['S', 'I', 'R']] / self.province.population
-
-        R = df['I'].shift(-1) - df['I'].shift(1)
-        R /= df['S'].shift(-1) - df['S'].shift(1)
-        R += 1
-        R *= df['S']
-        R = 1 / R
-        R = R.clip(upper=10, lower=0)
-        df['R(t)'] = R
-        df = df.drop(['I', 'S', 'R'], 1)
-        self.data = df
-        return self
-
-
-@st.cache(allow_output_mutation=True)
-def get_case_data(as_of_date):
-    data_url = 'https://health-infobase.canada.ca/src/data/covidLive/covid19-download.csv'
-    df = pd.read_csv(data_url, parse_dates=['date'])
-    col_names = {
-        'prname': 'Province',
-        'date': 'Date',
-        'numtoday': 'New Cases',
-        'numrecover': 'Total Recovered',
-        'numdeathstoday': 'New Deaths',
-        'numtotal': 'Total Cases',
-        'numdeaths': 'Total Deaths',
-        'numrecoveredtoday': 'New Recovered',
-        'numactive': 'Active Cases'
-    }
-
-    df.rename(columns=col_names, inplace=True)
-    df = df[col_names.values()]
-    df = df.fillna(0)
-    int_cols = {col: int for col in df.columns[~df.columns.isin(['Province', 'Date'])].to_list()}
-    df = df.astype(dtype=int_cols)
-    return df
-
-
-@st.cache(allow_output_mutation=True)
-def get_vaccine_history(as_of_date):
-    data_url = 'https://api.opencovid.ca/timeseries?stat=avaccine&loc=prov'
-    resp = requests.get(data_url)
-    df = pd.DataFrame(resp.json()['avaccine'])
-    df.rename(columns={
-        'date_vaccine_administered': 'Date',
-        'province': 'Province',
-        'avaccine': 'New Vaccinated',
-        'cumulative_avaccine': 'Total Vaccinated'
-    }, inplace=True)
-    df['Date'] = pd.to_datetime(df['Date'])
-    # Normalize province names
-    prov_names = {abbr: name for abbr, name in config.province_data[['abbr', 'name']].values}
-    df['Province'] = df['Province'].apply(lambda x: prov_names.get(x, x))
-    return df
+import altair as alt
+from data import Data
+from numpy import nan
 
 
 def smooth_data(df, window):
@@ -106,42 +15,140 @@ def smooth_data(df, window):
     return df
 
 
-def plot_R(data, window):
+def plot_R_altair(data, window):
     df = smooth_data(data.data, window)
-    fig, ax = plt.subplots(figsize=(21,9))
-    ax1 = df.set_index('Date')['R(t) (smoothed)'].plot(ax=ax, secondary_y=True, label=f'R(t) ({window} day average)')
-    ax2 = (df.set_index('Date')['New Cases (smoothed)']).plot(ax=ax, label=f'Daily New Cases ({window} day average)')
-    # ax2 = df.set_index('Date')['Total Cases'].pct_change(freq='14d').plot(ax=ax, label=f'% Change in New Cases')
-    # (df.set_index('Date')['I (smoothed)']*province.population).plot(ax=ax)
-    for index, row in data.province.interventions.iterrows():
-        date = row['Date']
-        measure = row['Measure']
-        ax.axvline(date, color=colors[index], label=measure)
+    df['R(t) (smoothed)'] = df['R(t) (smoothed)'].round(1)
+    df['New Cases (smoothed)'] = df['New Cases (smoothed)'].round(0).astype(int)
+    # Add a yval so that we can move the Points
+    int_df = data.province.interventions
+    int_df['yval'] = 1
 
-    # Add line to denote where R=1 is
-    ax1.axhline(1, ls='--', c='red')
-    ax1.text(x=df['Date'].max(), y=1.1, s='R = 1')
-    h1, l1 = ax1.get_legend_handles_labels()
-    h2, l2 = ax2.get_legend_handles_labels()
+    scale = alt.Scale(
+        domain=['R(t) (smoothed)', 'New Cases (smoothed)'],
+        range=['gray', 'blue']
+    )
 
-    ax.legend(h1+h2, l1+l2, bbox_to_anchor=(0, -0.75), loc='lower left')
-    return fig
+    nearest = alt.selection(
+        type='single',
+        nearest=True,
+        on='mouseover',
+        fields=['Date'],
+        empty='none'
+    )
+
+    # Transparent selectors across the chart. This is what tells us
+    # the x-value of the cursor
+    selectors = alt.Chart(df).mark_point().encode(
+        x='Date:T',
+        opacity=alt.value(0),
+    ).add_selection(
+        nearest
+    )
+
+    color=alt.condition(
+        alt.datum['R(t) (smoothed)'] > 1.0,
+        alt.value('red'),
+        alt.value('green')
+    )
+
+    R = alt.Chart(df).mark_line(stroke='gray').transform_fold(
+            fold=['R(t) (smoothed)', 'New Cases (smoothed)'],
+            as_ = ['Timeseries', 'value']
+        ).encode(
+            x=alt.X('Date:T', axis=alt.Axis(title='Date')),
+            y=alt.Y('R(t) (smoothed)', axis=alt.Axis(title='R(t)')),
+            color=alt.Color('Timeseries:N', scale=scale)
+        )
+
+    C = alt.Chart(df).mark_line(stroke='blue').encode(
+        x=alt.X('Date:T', axis=alt.Axis(title='Date')),
+        y=alt.Y('New Cases (smoothed)', axis=alt.Axis(title='New Cases'))
+    )
+
+    R_points = R.mark_point().encode(
+        opacity=alt.condition(nearest, alt.value(1), alt.value(0)),
+        color=color
+    )
+    C_points = C.mark_point().encode(
+        opacity=alt.condition(nearest, alt.value(1), alt.value(0))
+    )
+
+    R_text = R.mark_text(align='left', dx=5, dy=-5).encode(
+        text=alt.condition(
+            nearest, 
+            'R(t) (smoothed):Q', 
+            alt.value(' ')
+        ),
+        color=color
+    )
+
+    # Draw some rectangles to shade
+    areas = R.mark_rule(opacity=0.2).encode(
+        color=color
+    )
+
+
+    C_text = C.mark_text(align='left', dx=5, dy=-5).encode(
+        text=alt.condition(
+            nearest, 
+            'New Cases (smoothed):Q', 
+            alt.value(' ')
+        )
+    )
+
+    # Draw a rule at the location of the selection
+    rules = alt.Chart(df).mark_rule(color='gray').encode(
+        x='Date:T',
+    ).transform_filter(
+        nearest
+    )
+
+    date_text = rules.mark_text(align='left', dx=5, dy=0).encode(text='Date:T')
+
+    # Draw triangles for the interventions
+    shape_scale = alt.Scale(
+        domain=['Tighten', 'Ease', 'Event'],
+        range=['triangle-up', 'triangle-down', 'diamond']
+    )
+    shape_color_scale = alt.Scale(
+        domain=['Tighten', 'Ease', 'Event'],
+        range=['red', 'green', 'blue']
+    )
+    interventions = alt.Chart(int_df).mark_point(size=500, filled=True).encode(
+        x=alt.X('Date:T'),
+        y=alt.Y('yval:Q', title=''),
+        shape=alt.Shape(
+            'Type:N', 
+            scale=shape_scale, 
+            title='Intervention Type'
+        ),
+        tooltip=alt.Tooltip(['Measure', 'Date', 'Type']),
+        color=alt.Color('Type:N', scale=shape_color_scale)
+    )
+
+    # Draw the R=1 reference line
+    reference = alt.Chart(pd.DataFrame({'y':[1]})).mark_rule(strokeDash=[10,10]).encode(y='y')
+
+    layer1 = R + selectors + rules + R_points + R_text + date_text + reference + areas
+    layer2 = C + C_points + C_text
+    layer3 = interventions
+    chart = alt.layer(layer1, layer2).resolve_scale(y='independent')
+    chart = alt.layer(chart, layer3).resolve_scale(x='shared', color='independent', shape='independent')
+    return chart
 
 
 def plot_immunity(data):
     df = data.data[['Date', 'Immunity (Lower Bound)', 'Immunity (Upper Bound)']].copy()
-    df = df.melt('Date', var_name='Confidence', value_name='Immunity Percentage')
-    df['Immunity Percentage'] *= 100
-    fig, ax = plt.subplots(figsize=(21,9))
-    sns.lineplot(
-        data=df,
-        x='Date',
-        y='Immunity Percentage',
-        hue='Confidence',
-        ax=ax
+    df = df.set_index('Date').rolling(window='14d').mean().reset_index()
+
+    chart = alt.Chart(df).mark_area(opacity=0.5).encode(
+        x='Date:T',
+        y=alt.Y('Immunity (Lower Bound):Q', title='Immunity %', axis=alt.Axis(format='%')),
+        y2=alt.Y2('Immunity (Upper Bound):Q', title=''),
+        tooltip=alt.Tooltip('Date')
     )
-    ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-    return fig    
+
+    return chart
 
 
 def app():
@@ -157,11 +164,11 @@ def app():
 
     st.write(data.province.interventions)
 
-    st.write(plot_R(data, 14))
+    st.write(data.data[['Date', 'New Vaccinated', 'Total Vaccinated']])
 
-    # st.write(data.data)
+    st.altair_chart(plot_R_altair(data, 7), use_container_width=True)
 
-    st.write(plot_immunity(data))
+    st.altair_chart(plot_immunity(data), use_container_width=True)
 
 if __name__ == "__main__":
     st.set_page_config(layout='wide')
