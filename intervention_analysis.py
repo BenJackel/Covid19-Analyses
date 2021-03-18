@@ -301,12 +301,10 @@ def app():
 
     st.markdown("## The Path to Herd Immunity")
     st.markdown("""
-    Herd immunity is the concept that after a significant proportion of a population is not susceptible, 
-    then new infections will eventually slow down and stop all together.
-
     If one solves the SIR model for some initial conditions, 
-    infections eventually slow down and stop all together as the number of susceptible people reaches a threshold. 
-    However, there is no clear value for when a population reaches the immunity level to qualify for 'Herd Immunity'. 
+    infections eventually slow down and stop all together as the number of susceptible people reaches a threshold. This
+    threshold represents "Herd Immunity". However, there is no single value for when a population reaches the immunity 
+    level to qualify for Herd Immunity. 
     Any such value would be strongly dependent on local conditions. Many epidemiologists suggest 
     immunity levels anywhere from 70% on the low end to 90% on the high end.
 
@@ -319,6 +317,11 @@ def app():
     The upper bound is calculated as the number of daily cases * 5 + # vaccinated.
     """)
     st.altair_chart(plot_immunity(data), use_container_width=True)
+
+    with st.beta_expander("Footnotes"):
+        st.markdown("""
+            Case and vaccine data come from the [Covid-19 Canada Open Data Working Group](https://opencovid.ca/)
+        """)
 
 if __name__ == "__main__":
     st.set_page_config(layout='wide')
