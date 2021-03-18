@@ -12,7 +12,7 @@ def make_immunity_monotonic(data):
         data['vacc_diff'] = data['Total Vaccinated'].diff()
         data.loc[data['vacc_diff'] <= 0, 'Total Vaccinated'] = nan
         data['Total Vaccinated'] = data['Total Vaccinated'].ffill().fillna(0).astype(int)
-    data = data.drop('vacc_diff', 1)
+    data = data.drop('vacc_diff', axis=1, errors='ignore')
     return data
 
 

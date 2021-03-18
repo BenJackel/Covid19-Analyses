@@ -156,6 +156,7 @@ def plot_immunity(data):
 
 def app():
     prov_options = list(config.province_data['name'].values)
+    prov_options = [p for p in prov_options if p != 'Repatriated']
     default_index = prov_options.index('Saskatchewan')
     province_selection = st.sidebar.selectbox(
         "Select Province", 
@@ -166,8 +167,6 @@ def app():
     data = Data(province_selection)
 
     st.write(data.province.interventions)
-
-    st.write(data.data[['Date', 'New Vaccinated', 'Total Vaccinated']])
 
     col1, _, _, _ = st.beta_columns(4)
     with col1:

@@ -64,7 +64,7 @@ interventions = {
             'YT': [
                 {'Date': to_datetime('03-01-2020'), 'Measure': '', 'Type': ''}
             ],
-            'NWT': [
+            'NT': [
                 {'Date': to_datetime('03-01-2020'), 'Measure': '', 'Type': ''}
             ],
             'NU': [
