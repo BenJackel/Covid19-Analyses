@@ -130,11 +130,11 @@ def plot_R_altair(data, window):
     )
 
     # Draw the R=1 reference line
-    reference = alt.Chart(pd.DataFrame({'y':[1]})).mark_rule(strokeDash=[10,10]).encode(y='y')
+    reference = alt.Chart(pd.DataFrame({'y':[1]})).mark_rule(strokeDash=[10,10]).encode(y=alt.Y('y:Q', axis=alt.Axis(title='')))
 
-    layer1 = R + selectors + rules + R_points + R_text + date_text + reference + areas
+    layer1 = R + selectors + rules + R_points + R_text + date_text + reference
     layer2 = C + C_points + C_text
-    layer3 = interventions
+    layer3 = interventions + areas
     chart = alt.layer(layer1, layer2).resolve_scale(y='independent')
     chart = alt.layer(chart, layer3).resolve_scale(x='shared', color='independent', shape='independent')
     return chart
