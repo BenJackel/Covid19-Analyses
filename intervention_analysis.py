@@ -320,7 +320,8 @@ def app():
 
     with st.beta_expander("Footnotes"):
         st.markdown("""
-            Case and vaccine data come from the [Covid-19 Canada Open Data Working Group](https://opencovid.ca/)
+            Case and vaccine data come from the [Covid-19 Canada Open Data Working Group](https://opencovid.ca/) and
+            [here](https://health-infobase.canada.ca/src/data/covidLive/covid19-download.csv)
         """)
 
 if __name__ == "__main__":
