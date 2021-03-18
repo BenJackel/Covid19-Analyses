@@ -37,7 +37,8 @@ interventions = {
                 {'Date': to_datetime('12-14-2020'), 'Measure': 'Social gather restrictions, capacity restrictions for retailers', 'Type': 'Tighten'}
             ],
             'QC': [
-                {'Date': to_datetime('03-01-2020'), 'Measure': '', 'Type': ''}
+                {'Date': to_datetime('12-25-2020'), 'Measure': 'Province wide lockdown', 'Type': 'Tighten'},
+                {'Date': to_datetime('01-09-2021'), 'Measure': 'Province wide curfew', 'Type': 'Tighten'}
             ],
             'PE': [
                 {'Date': to_datetime('03-01-2020'), 'Measure': '', 'Type': ''}

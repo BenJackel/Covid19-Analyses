@@ -19,8 +19,11 @@ def plot_R_altair(data, window):
     df = smooth_data(data.data, window)
     df['R(t) (smoothed)'] = df['R(t) (smoothed)'].round(1)
     df['New Cases (smoothed)'] = df['New Cases (smoothed)'].round(0).astype(int)
+
+    min_date = data.data['Date'].min()
     # Add a yval so that we can move the Points
     int_df = data.province.interventions
+    int_df = int_df[int_df['Date'] >= min_date]
     int_df['yval'] = 1
 
     scale = alt.Scale(
@@ -165,6 +168,12 @@ def app():
     st.write(data.province.interventions)
 
     st.write(data.data[['Date', 'New Vaccinated', 'Total Vaccinated']])
+
+    col1, _, _, _ = st.beta_columns(4)
+    with col1:
+        d1 = st.sidebar.date_input(label='Start Date', value=pd.to_datetime('03-01-2020'))
+        date_mask = data.data['Date'] >= pd.to_datetime(d1)
+        data.data = data.data[date_mask]
 
     st.altair_chart(plot_R_altair(data, 7), use_container_width=True)
 
