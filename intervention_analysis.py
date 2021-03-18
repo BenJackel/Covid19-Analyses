@@ -315,7 +315,8 @@ def app():
 
     The upper bound of that range is harder to quantify. Recently, the [CDC](https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/burden.html) 
     has estimated that (especially early in the pandemic) 1 in 4.6 infections were reported. This is for the US, however it is not unreasonable to
-    assume a similar value for Canada. For simplicity, I chose a value of 5. The upper bound is calculated as the number of daily cases * 5 + # vaccinated.
+    assume a similar value for Canada. For simplicity, I chose a value of 5. 
+    The upper bound is calculated as the number of daily cases * 5 + # vaccinated.
     """)
     st.altair_chart(plot_immunity(data), use_container_width=True)
 
