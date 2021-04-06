@@ -34,7 +34,9 @@ interventions = {
                 {'Date': to_datetime('11-03-2020'), 'Measure': 'Local Mask Policy (Regina, PA, Saskatoon)', 'Type': 'Tighten'},
                 {'Date': to_datetime('11-19-2020'), 'Measure': 'Province-wide Mask Policy', 'Type': 'Tighten'},
                 {'Date': to_datetime('11-27-2020'), 'Measure': 'Indoor gatherings capacity restrictions, group and teams sports cancelled', 'Type': 'Tighten'},
-                {'Date': to_datetime('12-14-2020'), 'Measure': 'Social gather restrictions, capacity restrictions for retailers', 'Type': 'Tighten'}
+                {'Date': to_datetime('12-14-2020'), 'Measure': 'Social gather restrictions, capacity restrictions for retailers', 'Type': 'Tighten'},
+                {'Date': to_datetime('03-09-2021'), 'Measure': 'Loosening of Social gather restrictions, capacity restrictions for retailers', 'Type': 'Ease'},
+                {'Date': to_datetime('03-23-2021'), 'Measure': 'Regina "lockdown"', 'Type': 'Tighten'}
             ],
             'QC': [
                 {'Date': to_datetime('12-25-2020'), 'Measure': 'Province wide lockdown', 'Type': 'Tighten'},

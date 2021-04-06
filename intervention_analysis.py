@@ -7,6 +7,7 @@ import altair as alt
 from data import Data
 from numpy import nan
 from scipy.integrate import cumtrapz
+from streamlit import config as st_config
 
 
 def smooth_data(df, window):
@@ -92,7 +93,7 @@ def plot_R(data, window):
     )
 
 
-    C_text = C.mark_text(align='left', dx=5, dy=-5).encode(
+    C_text = C.mark_text(align='left', dx=5, dy=-5, stroke='blue').encode(
         text=alt.condition(
             nearest, 
             'New Cases (smoothed):Q', 
@@ -106,7 +107,7 @@ def plot_R(data, window):
         nearest
     )
 
-    date_text = rules.mark_text(align='left', dx=5, dy=0).encode(text='Date:T')
+    date_text = rules.mark_text(align='left', dx=5, dy=0, stroke='blue').encode(text='Date:T')
 
     # Draw triangles for the interventions
     shape_scale = alt.Scale(
@@ -130,7 +131,9 @@ def plot_R(data, window):
     )
 
     # Draw the R=1 reference line
-    reference = alt.Chart(pd.DataFrame({'y':[1]})).mark_rule(strokeDash=[10,10]).encode(y=alt.Y('y:Q', axis=alt.Axis(title='')))
+    reference = alt.Chart(pd.DataFrame({'y':[1]})) \
+                   .mark_rule(strokeDash=[10,10], stroke='green') \
+                   .encode(y=alt.Y('y:Q', axis=alt.Axis(title='')))
 
     layer1 = R + selectors + rules + R_points + R_text + date_text + reference
     layer2 = C + C_points + C_text
@@ -207,6 +210,9 @@ def plot_acceleration():
     return chart
 
 def app():
+
+    today = pd.to_datetime(datetime.datetime.now().date())
+
     prov_options = list(config.province_data['name'].values)
     prov_options = [p for p in prov_options if p not in ['Repatriated', 'Acceleration']]
     default_index = prov_options.index('Saskatchewan')
@@ -220,7 +226,7 @@ def app():
 
     st.sidebar.write("Limit the view of the data:")
     d1 = st.sidebar.date_input(label='Start Date', value=pd.to_datetime('03-01-2020'))
-    d2 = st.sidebar.date_input(label='End Date', value=pd.to_datetime('03-01-2021'))
+    d2 = st.sidebar.date_input(label='End Date', value=today)
 
     date_mask = data.data['Date'] >= pd.to_datetime(d1)
     date_mask = date_mask & (data.data['Date'] <= pd.to_datetime(d2))
@@ -323,6 +329,7 @@ def app():
             Case and vaccine data come from the [Covid-19 Canada Open Data Working Group](https://opencovid.ca/) and
             [here](https://health-infobase.canada.ca/src/data/covidLive/covid19-download.csv)
         """)
+
 
 if __name__ == "__main__":
     st.set_page_config(layout='wide')
