@@ -29,8 +29,8 @@ def plot_R(data, window):
     int_df['yval'] = 1
 
     scale = alt.Scale(
-        domain=['R(t) (smoothed)', 'New Cases (smoothed)'],
-        range=['gray', 'blue']
+        domain=['R(t) (smoothed)', 'New Cases (smoothed)', 'New Cases'],
+        range=['#662E9B', 'blue', 'grey']
     )
 
     nearest = alt.selection(
@@ -56,7 +56,7 @@ def plot_R(data, window):
         alt.value('green')
     )
 
-    R = alt.Chart(df).mark_line(stroke='gray').transform_fold(
+    R = alt.Chart(df).mark_line(stroke='#662E9B').transform_fold(
             fold=['R(t) (smoothed)', 'New Cases (smoothed)'],
             as_ = ['Timeseries', 'value']
         ).encode(
@@ -136,10 +136,19 @@ def plot_R(data, window):
                    .encode(y=alt.Y('y:Q', axis=alt.Axis(title='')))
 
     layer1 = R + selectors + rules + R_points + R_text + date_text + reference
-    layer2 = C + C_points + C_text
+    daily_cases_df = data.data[['Date', 'New Cases']].copy()
+    daily_case_chart = alt.Chart(daily_cases_df).mark_bar(opacity=0.25, color='grey').encode(
+        x=alt.X('Date:T'),
+        y=alt.Y('New Cases:Q')
+    )
+    layer2 = C + C_points + C_text + daily_case_chart
+
     layer3 = interventions + areas
     chart = alt.layer(layer1, layer2).resolve_scale(y='independent')
     chart = alt.layer(chart, layer3).resolve_scale(x='shared', color='independent', shape='independent')
+
+
+    # chart = alt.layer(chart, daily_case_chart).resolve_scale(x='shared')
     return chart
 
 
