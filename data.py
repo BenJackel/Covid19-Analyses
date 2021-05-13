@@ -89,7 +89,7 @@ def get_case_data(as_of_date):
 
 @st.cache(allow_output_mutation=True)
 def get_vaccine_history(as_of_date):
-    data_url = 'https://api.opencovid.ca/timeseries?stat=avaccine&loc=prov'
+    data_url = 'https://api.opencovid.ca/timeseries?stat=avaccine&loc=prov&ymd=true'
     resp = requests.get(data_url)
     df = pd.DataFrame(resp.json()['avaccine'])
     df.rename(columns={
