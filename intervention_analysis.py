@@ -9,7 +9,6 @@ from numpy import nan
 from scipy.integrate import cumtrapz
 from streamlit import config as st_config
 
-
 def smooth_data(df, window):
     df['R(t) (smoothed)'] = df.set_index('Date')['R(t)'].rolling(f'{window}d').mean().values
     df['New Cases (smoothed)'] = df.set_index('Date')['New Cases'].rolling(f'{window}d').mean().values
@@ -342,5 +341,15 @@ def app():
 
 if __name__ == "__main__":
     st.set_page_config(layout='wide')
+
+
+    st.markdown("""
+        <style type='text/css'>
+            details {
+                display: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
 
     app()
