@@ -1,4 +1,3 @@
-import requests
 import config
 import pandas as pd
 import datetime

@@ -2,7 +2,7 @@ streamlit >= 0.79.0
 ipython
 pandas
 numpy
-matplotlib == 3.2
+matplotlib == 3.5.1
 seaborn
 altair
 requests
